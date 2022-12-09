@@ -1,14 +1,23 @@
 pub mod pid;
 use pid::*;
 
-const SAMPLE_TIME_S: f32 = 0.01;
-static mut OUTPUT: f32 = 0.;
-const ALPHA: f32 = 0.02;
-fn test_system_update(input: f32) -> f32 {
-    unsafe {
-        OUTPUT = (SAMPLE_TIME_S * input + OUTPUT) / (1.0_f32 + ALPHA * SAMPLE_TIME_S);
-        OUTPUT
+use std::cell::RefCell;
+
+const SAMPLE_TIME_S: f32 = 0.1;
+const Y_K1: f32 = 0.;
+const Y_K2: f32 = 0.;
+const U_K1: f32 = 0.;
+const U_K2: f32 = 0.;
+thread_local!(static PAST_Y: RefCell<[f32; 2]> = RefCell::new([Y_K1, Y_K2]));
+thread_local!(static PAST_U: RefCell<[f32; 2]> = RefCell::new([U_K1, U_K2]));
+
+fn plant_update(input: f32, iteration_count: u16) -> f32 {
+    if iteration_count == 0 {
+        // let y2 =
+    } else if iteration_count == 1 {
+    } else {
     }
+    unreachable!();
 }
 
 fn main() {
@@ -35,9 +44,9 @@ fn main() {
     );
 
     println!("{:<20} {:<20} {:<20}", "TIME", "SYS.OUT", "PID.OUT");
-    for t in 0u16..400 {
-        let i = f32::from(t) * 0.01; // 400 * 0.01 = 4 second
-        let measure = test_system_update(pid.out);
+    for t in 0u16..40 {
+        let i = f32::from(t) * 0.01; // 40 * 0.1 = 4 second
+        let measure = plant_update(pid.out, t);
         pid.update(SET_POINT, measure);
         println!("{:<20} {:<20} {:<20}", i, measure, pid.out);
     }
