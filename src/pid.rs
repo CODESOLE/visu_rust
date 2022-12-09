@@ -45,7 +45,7 @@ impl Pid {
             out: 0.,
         }
     }
-    pub fn update(&mut self, set_point: f32, measurement: f32) -> f32 {
+    pub fn update(&mut self, set_point: f32, measurement: f32) {
         let error = set_point - measurement;
         let propotional = self.kp * error;
 
@@ -69,7 +69,5 @@ impl Pid {
         }
         self.prev_err = error;
         self.prev_measurement = measurement;
-
-        self.out
     }
 }
