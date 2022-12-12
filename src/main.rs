@@ -7,21 +7,42 @@ const Y_K2: f32 = 0.;
 const U_K1: f32 = 0.;
 const U_K2: f32 = 0.;
 
-fn plant_update(input: f32, iteration_count: u16, mut past_u: &[f32], mut past_y: &[f32]) -> f32 {
+fn plant_update(
+    input: f32,
+    iteration_count: u16,
+    u_terms: &mut Vec<f32>,
+    y_terms: &mut Vec<f32>,
+) -> f32 {
     if iteration_count == 0 {
-        // let y2 =
+        let y = 0.004545 * (input + U_K2) + 0.009091 * U_K1 + 1.818 * Y_K1 - 0.8182 * Y_K2;
+        u_terms.push(input);
+        y_terms.push(y);
+        return y;
     } else if iteration_count == 1 {
+        let y = 0.004545 * (input + U_K1)
+            + 0.009091 * u_terms[(iteration_count - 1) as usize]
+            + 1.818 * y_terms[(iteration_count - 1) as usize]
+            - 0.8182 * Y_K1;
+        u_terms.push(input);
+        y_terms.push(y);
+        return y;
     } else {
+        let y = 0.004545 * (input + u_terms[(iteration_count - 2) as usize])
+            + 0.009091 * u_terms[(iteration_count - 1) as usize]
+            + 1.818 * y_terms[(iteration_count - 1) as usize]
+            - 0.8182 * y_terms[(iteration_count - 2) as usize];
+        u_terms.push(input);
+        y_terms.push(y);
+        return y;
     }
-    unreachable!();
 }
 
 fn main() {
     const SET_POINT: f32 = 1.;
-    const PID_KP: f32 = 2.;
-    const PID_KI: f32 = 0.5;
-    const PID_KD: f32 = 0.25;
-    const PID_TAU: f32 = 0.02;
+    const PID_KP: f32 = 1.33;
+    const PID_KI: f32 = 0.027;
+    const PID_KD: f32 = 0.;
+    const PID_TAU: f32 = 0.;
     const PID_LIM_MIN: f32 = -10.;
     const PID_LIM_MAX: f32 = 10.;
     const PID_LIM_MIN_INT: f32 = -5.;
@@ -39,13 +60,19 @@ fn main() {
         PID_LIM_MAX_INT,
     );
 
-    let mut past_y = [Y_K1, Y_K2];
-    let mut past_u = [U_K1, U_K2];
+    let mut y_terms = Vec::<f32>::new();
+    let mut u_terms = Vec::<f32>::new();
+    let mut time = Vec::<f32>::new();
 
-    println!("{:<20} {:<20} {:<20}", "TIME", "SYS.OUT", "PID.OUT");
-    for t in 0u16..40 {
-        let i = f32::from(t) * 0.01; // 40 * 0.1 = 4 second
-        let measure = plant_update(pid.out, t, &mut past_u, &mut past_y);
+    println!(
+        "{:<20} {:<20} {:<20}",
+        "TIME", "SYS.OUT ( y[k] )", "PID.OUT ( u[k] )"
+    );
+    for t in 0u16..90 {
+        // 90 * 0.1 = 9 seconds
+        let i = f32::from(t) * 0.1;
+        time.push(i);
+        let measure = plant_update(pid.out, t, &mut u_terms, &mut y_terms);
         pid.update(SET_POINT, measure);
         println!("{:<20} {:<20} {:<20}", i, measure, pid.out);
     }
