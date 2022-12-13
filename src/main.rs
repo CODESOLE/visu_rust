@@ -1,6 +1,12 @@
 pub mod pid;
 use pid::*;
 
+use plotlib::grid::*;
+use plotlib::page::*;
+use plotlib::repr::*;
+use plotlib::style::*;
+use plotlib::view::*;
+
 const SAMPLE_TIME_S: f32 = 0.1;
 const Y_K1: f32 = 0.;
 const Y_K2: f32 = 0.;
@@ -68,12 +74,31 @@ fn main() {
         "{:<20} {:<20} {:<20}",
         "TIME", "SYS.OUT ( y[k] )", "PID.OUT ( u[k] )"
     );
+
+    let mut graph_data = Vec::<(f64, f64)>::new(); // grafiğin x ve y verilerini tutan değişken
+
     for t in 0u16..90 {
         // 90 * 0.1 = 9 seconds
         let i = f32::from(t) * 0.1;
         time.push(i);
         let measure = plant_update(pid.out, t, &mut u_terms, &mut y_terms);
         pid.update(SET_POINT, measure);
+        graph_data.push((time[t as usize] as f64, measure as f64)); // x(zaman) ve y(plant out) değerleinin dizide saklanması
         println!("{:<20} {:<20} {:<20}", i, measure, pid.out);
     }
+
+    let l1 = Plot::new(graph_data)
+        .line_style(LineStyle::new().colour("#FF0000").linejoin(LineJoin::Round));
+    let v = ContinuousView::new().add(l1);
+    let mut v = v
+        .y_range(0., 1.2)
+        .x_label("Time (seconds)")
+        .y_label("Plant Out")
+        .y_max_ticks(12);
+    v.add_grid(Grid {
+        nx: 89,
+        ny: 12,
+        ..Default::default()
+    });
+    Page::single(&v).save("graph.svg").expect("saving svg");
 }
