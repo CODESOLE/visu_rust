@@ -32,8 +32,8 @@ fn main() {
         PID_LIM_MAX_INT,
     );
 
-    let mut car_front = CarModel::new(None, 30., 50., SET_POINT, SAMPLE_TIME_S);
-    let mut car_back = CarModel::new(Some(pid), 40., 0., SET_POINT, SAMPLE_TIME_S);
+    let mut car_front = CarModel::new(None, 30., 50., SET_POINT);
+    let mut car_back = CarModel::new(Some(pid), 40., 0., SET_POINT);
 
     let mut time = Vec::<f32>::new();
 

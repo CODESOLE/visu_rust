@@ -22,7 +22,6 @@ impl CarModel {
         free_mode_set_speed: f32,
         ini_pos_x: f32,
         safe_distance: f32,
-        st: f32,
     ) -> Self {
         if let Some(pidd) = pid {
             Self {
@@ -52,7 +51,7 @@ impl CarModel {
                     lim_min_integrator: 0.,
                     integrator: 0.,
                     prev_err: 0.,
-                    sample_time: st,
+                    sample_time: 0.,
                     differentiator: 0.,
                     prev_measurement: 0.,
                     out: 0.,
