@@ -6,13 +6,13 @@ const U_K1: f32 = 0.;
 const U_K2: f32 = 0.;
 
 pub struct CarModel {
-    pub ini_pos_x: f32,
+    ini_pos_x: f32,
     pub pos_x: f32,
-    pub safe_distance: f32,
-    pub free_mode_ref_speed: f32,
-    pub pid: Pid,
-    pub y_terms: Vec<f32>,
-    pub u_terms: Vec<f32>,
+    safe_distance: f32,
+    free_mode_ref_speed: f32,
+    pid: Pid,
+    y_terms: Vec<f32>,
+    u_terms: Vec<f32>,
     iteration_count: u16,
 }
 
@@ -40,22 +40,7 @@ impl CarModel {
                 pos_x: ini_pos_x,
                 safe_distance,
                 free_mode_ref_speed: free_mode_set_speed,
-                pid: Pid {
-                    kp: 0.,
-                    ki: 0.,
-                    kd: 0.,
-                    tau: 0.,
-                    lim_max: 0.,
-                    lim_min: 0.,
-                    lim_max_integrator: 0.,
-                    lim_min_integrator: 0.,
-                    integrator: 0.,
-                    prev_err: 0.,
-                    sample_time: 0.,
-                    differentiator: 0.,
-                    prev_measurement: 0.,
-                    out: 0.,
-                },
+                pid: Default::default(),
                 y_terms: Vec::<f32>::new(),
                 u_terms: Vec::<f32>::new(),
                 iteration_count: 0,
