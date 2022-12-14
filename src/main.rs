@@ -1,50 +1,16 @@
+pub mod car_model;
 pub mod pid;
+use car_model::*;
 use pid::*;
 
-use plotlib::grid::*;
 use plotlib::page::*;
 use plotlib::repr::*;
 use plotlib::style::*;
 use plotlib::view::*;
 
-const SAMPLE_TIME_S: f32 = 0.1;
-const Y_K1: f32 = 0.;
-const Y_K2: f32 = 0.;
-const U_K1: f32 = 0.;
-const U_K2: f32 = 0.;
-
-fn plant_update(
-    input: f32,
-    iteration_count: u16,
-    u_terms: &mut Vec<f32>,
-    y_terms: &mut Vec<f32>,
-) -> f32 {
-    if iteration_count == 0 {
-        let y = 0.004545 * (input + U_K2) + 0.009091 * U_K1 + 1.818 * Y_K1 - 0.8182 * Y_K2;
-        u_terms.push(input);
-        y_terms.push(y);
-        return y;
-    } else if iteration_count == 1 {
-        let y = 0.004545 * (input + U_K1)
-            + 0.009091 * u_terms[(iteration_count - 1) as usize]
-            + 1.818 * y_terms[(iteration_count - 1) as usize]
-            - 0.8182 * Y_K1;
-        u_terms.push(input);
-        y_terms.push(y);
-        return y;
-    } else {
-        let y = 0.004545 * (input + u_terms[(iteration_count - 2) as usize])
-            + 0.009091 * u_terms[(iteration_count - 1) as usize]
-            + 1.818 * y_terms[(iteration_count - 1) as usize]
-            - 0.8182 * y_terms[(iteration_count - 2) as usize];
-        u_terms.push(input);
-        y_terms.push(y);
-        return y;
-    }
-}
-
 fn main() {
-    const SET_POINT: f32 = 1.;
+    const SET_POINT: f32 = 15.;
+    const SAMPLE_TIME_S: f32 = 0.1;
     const PID_KP: f32 = 1.33;
     const PID_KI: f32 = 0.027;
     const PID_KD: f32 = 0.;
@@ -54,7 +20,7 @@ fn main() {
     const PID_LIM_MIN_INT: f32 = -5.;
     const PID_LIM_MAX_INT: f32 = 5.;
 
-    let mut pid = Pid::new(
+    let pid = Pid::new(
         PID_KP,
         PID_KI,
         PID_KD,
@@ -66,39 +32,52 @@ fn main() {
         PID_LIM_MAX_INT,
     );
 
-    let mut y_terms = Vec::<f32>::new();
-    let mut u_terms = Vec::<f32>::new();
+    let mut car_front = CarModel::new(None, 30., 50., SET_POINT, SAMPLE_TIME_S);
+    let mut car_back = CarModel::new(Some(pid), 40., 0., SET_POINT, SAMPLE_TIME_S);
+
     let mut time = Vec::<f32>::new();
 
-    println!(
-        "{:<20} {:<20} {:<20}",
-        "TIME", "SYS.OUT ( y[k] )", "PID.OUT ( u[k] )"
-    );
-
-    let mut graph_data = Vec::<(f64, f64)>::new(); // grafiğin x ve y verilerini tutan değişken
+    let mut graph_data_abs_pos_back = Vec::<(f64, f64)>::new();
+    let mut graph_data_abs_pos_front = Vec::<(f64, f64)>::new();
+    let mut graph_data_speed_back = Vec::<(f64, f64)>::new();
+    let mut graph_data_speed_front = Vec::<(f64, f64)>::new();
 
     for t in 0u16..90 {
         // 90 * 0.1 = 9 seconds
         let i = f32::from(t) * 0.1;
         time.push(i);
-        let measure = plant_update(pid.out, t, &mut u_terms, &mut y_terms);
-        pid.update(SET_POINT, measure);
-        graph_data.push((time[t as usize] as f64, measure as f64)); // x(zaman) ve y(plant out) değerleinin dizide saklanması
-        println!("{:<20} {:<20} {:<20}", i, measure, pid.out);
+        let (speed_front, abs_pos_front) = car_front.update(100., i, 0.);
+        let (speed_back, abs_pos_back) =
+            car_back.update(car_front.pos_x - car_back.pos_x, i, speed_front);
+        graph_data_abs_pos_back.push((time[t as usize] as f64, abs_pos_back as f64));
+        graph_data_abs_pos_front.push((time[t as usize] as f64, abs_pos_front as f64));
+        graph_data_speed_back.push((time[t as usize] as f64, speed_back as f64));
+        graph_data_speed_front.push((time[t as usize] as f64, speed_front as f64));
     }
 
-    let l1 = Plot::new(graph_data)
-        .line_style(LineStyle::new().colour("#FF0000").linejoin(LineJoin::Round));
-    let v = ContinuousView::new().add(l1);
-    let mut v = v
-        .y_range(0., 1.2)
-        .x_label("Time (seconds)")
-        .y_label("Plant Out")
-        .y_max_ticks(12);
-    v.add_grid(Grid {
-        nx: 89,
-        ny: 12,
-        ..Default::default()
-    });
-    Page::single(&v).save("graph.svg").expect("saving svg");
+    let l1 = Plot::new(graph_data_abs_pos_back)
+        .line_style(LineStyle::new().colour("#FF0000").linejoin(LineJoin::Round))
+        .legend("Arkadaki Araç Mutlak Mesafesi".to_string());
+    let l2 = Plot::new(graph_data_abs_pos_front)
+        .line_style(LineStyle::new().colour("#00FF00").linejoin(LineJoin::Round))
+        .legend("Öndeki Araç Mutlak Mesafesi".to_string());
+    let l3 = Plot::new(graph_data_speed_back)
+        .line_style(LineStyle::new().colour("#FF0000").linejoin(LineJoin::Round))
+        .legend("Arkadaki Araç Hızı".to_string());
+    let l4 = Plot::new(graph_data_speed_front)
+        .line_style(LineStyle::new().colour("#00FF00").linejoin(LineJoin::Round))
+        .legend("Öndeki Araç Hızı".to_string());
+
+    let v = ContinuousView::new().add(l1).add(l2);
+    let v2 = ContinuousView::new().add(l3).add(l4);
+
+    let v = v.x_label("Time (seconds)").y_label("Absolute Position (m)");
+    let v2 = v2.x_label("Time (seconds)").y_label("Speed (m/s)");
+
+    Page::single(&v)
+        .save("graph_abs_pos.svg")
+        .expect("saving svg");
+    Page::single(&v2)
+        .save("graph_speed.svg")
+        .expect("saving svg");
 }
