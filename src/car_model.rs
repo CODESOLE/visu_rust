@@ -86,14 +86,17 @@ impl CarModel {
                 (y, y * t + self.ini_pos_x)
             }
         } else {
+            self.pid
+                .update(front_car_speed, *self.y_terms.last().unwrap());
+
             let y = 0.004545 * (self.pid.out + self.u_terms[(self.iteration_count - 2) as usize])
                 + 0.009091 * self.u_terms[(self.iteration_count - 1) as usize]
                 + 1.818 * self.y_terms[(self.iteration_count - 1) as usize]
                 - 0.8182 * self.y_terms[(self.iteration_count - 2) as usize];
+
             self.u_terms.push(self.pid.out);
             self.y_terms.push(y);
 
-            self.pid.update(front_car_speed, y);
             self.pos_x = y * t + self.ini_pos_x;
             self.iteration_count += 1;
             (y, y * t + self.ini_pos_x)
