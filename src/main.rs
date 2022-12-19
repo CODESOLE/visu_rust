@@ -9,16 +9,16 @@ use plotlib::style::*;
 use plotlib::view::*;
 
 fn main() {
-    const SET_POINT: f32 = 15.;
-    const SAMPLE_TIME_S: f32 = 0.1;
-    const PID_KP: f32 = 1.33;
-    const PID_KI: f32 = 0.027;
-    const PID_KD: f32 = 0.;
-    const PID_TAU: f32 = 0.;
-    const PID_LIM_MIN: f32 = -10.;
-    const PID_LIM_MAX: f32 = 10.;
-    const PID_LIM_MIN_INT: f32 = -5.;
-    const PID_LIM_MAX_INT: f32 = 5.;
+    const SET_POINT: f64 = 15.;
+    const SAMPLE_TIME_S: f64 = 0.1;
+    const PID_KP: f64 = 1.33;
+    const PID_KI: f64 = 0.027;
+    const PID_KD: f64 = 0.;
+    const PID_TAU: f64 = 0.;
+    const PID_LIM_MIN: f64 = -10.;
+    const PID_LIM_MAX: f64 = 10.;
+    const PID_LIM_MIN_INT: f64 = -5.;
+    const PID_LIM_MAX_INT: f64 = 5.;
 
     let pid = Pid::new(
         PID_KP,
@@ -35,24 +35,24 @@ fn main() {
     let mut car_front = CarModel::new(None, 30., 50., SET_POINT);
     let mut car_back = CarModel::new(Some(pid), 40., 0., SET_POINT);
 
-    let mut time = Vec::<f32>::new();
+    let mut time = Vec::<f64>::new();
 
     let mut graph_data_abs_pos_back = Vec::<(f64, f64)>::new();
     let mut graph_data_abs_pos_front = Vec::<(f64, f64)>::new();
     let mut graph_data_speed_back = Vec::<(f64, f64)>::new();
     let mut graph_data_speed_front = Vec::<(f64, f64)>::new();
 
-    for t in 0u16..90 {
+    for t in 0..90 {
         // 90 * 0.1 = 9 seconds
-        let i = f32::from(t) * 0.1;
+        let i = f64::from(t as u16) * 0.1;
         time.push(i);
         let (speed_front, abs_pos_front) = car_front.update(100., i, 0.);
         let (speed_back, abs_pos_back) =
             car_back.update(car_front.pos_x - car_back.pos_x, i, speed_front);
-        graph_data_abs_pos_back.push((time[t as usize] as f64, abs_pos_back as f64));
-        graph_data_abs_pos_front.push((time[t as usize] as f64, abs_pos_front as f64));
-        graph_data_speed_back.push((time[t as usize] as f64, speed_back as f64));
-        graph_data_speed_front.push((time[t as usize] as f64, speed_front as f64));
+        graph_data_abs_pos_back.push((time[t], abs_pos_back));
+        graph_data_abs_pos_front.push((time[t], abs_pos_front));
+        graph_data_speed_back.push((time[t], speed_back));
+        graph_data_speed_front.push((time[t], speed_front));
     }
 
     let l1 = Plot::new(graph_data_abs_pos_back)
